@@ -1,0 +1,209 @@
+---
+title: "Tugas Individu Anreg Minggu 7"
+author: "Dalilah Husna"
+date: "2024-03-05"
+output:
+  word_document: default
+  pdf_document: default
+  html_document: default
+---
+
+# Membaca data
+
+```{r}
+library(readxl)
+data <- read_xlsx("C:/Users/USER/OneDrive - apps.ipb.ac.id/Semester 4/Analisis Regresi/UTS/Pertemuan 7/Tugas Individu Pertemuan 7.xlsx")
+data
+```
+
+```{r}
+plot(data$X,data$Y)
+```
+
+# Model linier
+
+```{r}
+modelreg = lm(formula=Y~., data=data)
+summary(modelreg)
+modelreg
+```
+
+# Eksplorasi kondisi Gauss-Markov, pemeriksaan dengan grafik
+
+## 1. Plot sisaan vs Y duga
+
+```{r}
+plot(modelreg,1)
+```
+
+## 2. Plot sisaan vs urutan
+
+```{r}
+plot(x=1:dim(data)[1],
+     y=modelreg$residuals,
+     type='b',
+     ylab="residuals",
+     xlab="observation")
+```
+
+## 3. Normalitas sisaan
+
+```{r}
+plot(modelreg,2)
+```
+
+# Pengujian Asumsi
+
+## A. Kondisi Gauss-Markov
+
+### 1. Nilai harapan sisaan sama dengan 0
+
+```{r}
+t.test(modelreg$residuals,mu=0,conf.level=0.95)
+```
+
+Hipotesis yang diuji : H0 : miu = 0 H1 : miu tidak sama dengan 0
+
+Dari uji t diatas didapat nilai-p sebesar 1. Dengan alpha sebesar 0,05 maka nilai-p lebih besar dari alpha. Dapat disimpulkan bahwa tak tolak H0. Nilai harapan sisaan sama dengan 0.
+
+### 2. Ragam sisaan homogen
+
+```{r}
+library(lmtest)
+homogen <- bptest(modelreg)
+homogen
+```
+
+Hipotesis yang diuji : H0 : Ragam sisaan homogen H1 : Ragam sisaan heterogen
+
+Dari uji Breusch-Pagan guna melihat apakah ragam sisaan homogen didapat bahwa nilai-p sebesar 0,4674. Karena nilai-p \> alpha 0,05 maka tak tolak H0. Maka ragam sisaan homogen.
+
+### 3. Sisaan saling bebas
+
+```{r}
+library(randtests)
+runs.test(modelreg$residuals)
+```
+
+Hipotesis yang diuji : H0 : Sisaan saling bebas H1 : Sisaan tidak saling bebas
+
+Dari uji diatas, didapat nilai-p sebesar 0,005407. Dengan alpha sebesar 0,05 maka dapat disimpulkan tolak H0 karena nilai-p \< alpha. Maka sisaan tidak saling bebas.
+
+## B. Galat menyebar normal
+
+```{r}
+library(nortest)
+sisaan_model <- resid(modelreg)
+(norm_model <- lillie.test(sisaan_model))
+```
+
+Hipotesis yang diuji : H0 : galat menyebar normal H1 : galat menyebar tidak normal
+
+Dari uji Kolmogrov-Smirnov diatas, didapat nilai-p sebesar 0,7701 Dengan alpha sebesar 0,05, maka dapat kita simpulkan untuk tak tolak H0 karena nilai-p > 0,05. Maka sisaan menyebar normal.
+
+## C. Galat bebas terhadap peubah bebas
+
+```{r}
+model <- lm(Y~., data = data)
+summary(model)
+```
+
+Hipotesis yang diuji : H0 : galat bebas terhadap peubah bebas H1 : galat tidak bebas terhadap peubah bebas
+
+Dari ANOVA diatas dapat dilihat bahwa nilai-p sebesar 1,736e-07. Dengan alpha sebesar 0,05, dapat dikatakan bahwa tak tolak H0. Maka galat bebas terhadap peubah bebas.
+
+Maka dari sederetan uji diatas asumsi yang tidak terpenuhi adalah sisaan saling bebas. Karena ada satu asumsi yang tidak terpenuhi maka diperlukan penanganan terhadap kondisi yang tidak standar.
+
+# Penanganan kondisi tak standar
+
+```{r}
+data_x <- sqrt(data$X)
+data_y <- sqrt(data$Y)
+transformasi <- data.frame(data_x,data_y)
+transformasi
+```
+
+## Model Linier Baru
+
+```{r}
+modelbaru <- lm(transformasi$data_y~transformasi$data_x, data=transformasi)
+summary(modelbaru)
+modelbaru
+```
+
+```{r}
+plot(transformasi$data_x,transformasi$data_y)
+```
+
+# Eksplorasi kondisi Gauss-Markov, pemeriksaan dengan grafik untuk model baru
+
+## 1. Plot sisaan vs Y duga
+
+```{r}
+plot(modelbaru,1)
+```
+
+## 2. Plot sisaan vs urutan
+
+```{r}
+plot(x = 1:dim(transformasi)[1],
+     y = modelbaru$residuals,
+     type = 'b', 
+     ylab = "Residuals",
+     xlab = "Observation")
+```
+
+## 3. Eksplorasi normalitas sisaan
+
+```{r}
+plot(modelbaru,2)
+```
+
+# Uji formal kondisi Gauss-Markov
+
+## 1. Nilai harapan sisaan sama dengan 0
+
+```{r}
+nilaiharapan<- t.test(modelbaru$residuals,mu = 0,conf.level = 0.95)
+nilaiharapan
+```
+
+```{r}
+ifelse(nilaiharapan$p.value < 0.05, "Nilai harapan tidak sama dengan 0", "Nilai harapan sama dengan 0")
+```
+
+## 2. Ragam sisaan homogen
+
+```{r}
+library(car)
+ujihomogen <- ncvTest(modelbaru)
+ujihomogen
+```
+
+```{r}
+ifelse(ujihomogen$p < 0.05, "Ragam Tidak Homogen", "Ragam Homogen")
+```
+
+## 3. Sisaan saling bebas
+
+```{r}
+salingbebas<-runs.test(modelbaru$residuals)
+salingbebas
+```
+
+```{r}
+ifelse(salingbebas$p.value < 0.05, "Sisaan tidak saling bebas", "Sisaan saling bebas")
+```
+
+## Normalitas
+
+```{r}
+sisaanmodel <- resid(modelbaru)
+(normmodel <- lillie.test(sisaanmodel))
+```
+
+```{r}
+ifelse(normmodel$p.value < 0.05, "Galat tidak menyebar normal", "Galat menyebar normal")
+```
+
+Maka model terbaik didapat dari hasil transformasi kedua variabel yaitu X dan Y. Kedua variabel tersebut diakarkan, kemudian ketika diuji lagi untuk pengujian asumsi seluruh asumsi terpenuhi. Maka, telah didapat model terbaik serta memenuhi seluruh asumsi yang dibutuhkan. Model regresinya menjadi : $$ \hat Y = 8.7125-0.8134X $$
